@@ -1,5 +1,6 @@
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List
 
 list_file = "input.txt"
 
@@ -30,25 +31,35 @@ def check_installability(idx, line):
     return (line, "✅" if success else "❌")
 
 
-# Read all lines at the start
-with open(list_file, "r") as input_fil:
-    lines = [line.strip() for line in input_fil if line.strip()]
+def check_installability_all(package_urls: List[str]):
+    results = []
+    with ThreadPoolExecutor() as executor:
+        futures = {
+            executor.submit(check_installability, idx + 1, line): (idx, line)
+            for idx, line in enumerate(package_urls)
+        }
+        for future in as_completed(futures):
+            results.append(future.result())
 
-results = []
-with ThreadPoolExecutor() as executor:
-    futures = {
-        executor.submit(check_installability, idx + 1, line): (idx, line)
-        for idx, line in enumerate(lines)
-    }
-    for future in as_completed(futures):
-        results.append(future.result())
+    # Preserve original order
+    results.sort(key=lambda x: package_urls.index(x[0]))
+    return results
 
-# Preserve original order
-results.sort(key=lambda x: lines.index(x[0]))
 
-with open("output.txt", "w") as result_fil:
-    result_fil.write("package_url,mip_installability\n")
-    for line, status in results:
-        result_fil.write(f"{line},{status}\n")
+def parse_input_file():
+    # Read all lines at the start
+    with open(list_file, "r") as input_fil:
+        lines = [line.strip() for line in input_fil if line.strip()]
 
-print(f"Processed {len(lines)} packages.")
+    results = check_installability_all(lines)
+
+    with open("output.txt", "w") as result_fil:
+        result_fil.write("package_url,mip_installability\n")
+        for line, status in results:
+            result_fil.write(f"{line},{status}\n")
+
+    print(f"Processed {len(lines)} packages.")
+
+
+if __name__ == "__main__":
+    parse_input_file()

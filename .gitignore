@@ -8,7 +8,9 @@ wheels/
 
 # Virtual environments
 .venv
+.env
 
 # output files
 output*.txt
 input.txt
+awesome_list.md

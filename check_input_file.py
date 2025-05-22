@@ -8,7 +8,7 @@ def parse_input_file():
     with open(list_file, "r") as input_fil:
         lines = [line.strip() for line in input_fil if line.strip()]
 
-    results = checker.check_installability_many(lines)
+    results = checker.check_installability_many(lines, verbose=True)
 
     with open("output.txt", "w") as result_fil:
         result_fil.write("package_url,mip_installability\n")

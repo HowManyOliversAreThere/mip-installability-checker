@@ -5,8 +5,8 @@ from typing import List
 list_file = "input.txt"
 
 
-def check_installability(idx, line):
-    command_arg = line.replace("https://github.com/", "github:").replace(
+def check_installability(slug: str):
+    command_arg = slug.replace("https://github.com/", "github:").replace(
         "https://gitlab.com/", "gitlab:"
     )
     timed_out = False
@@ -17,7 +17,7 @@ def check_installability(idx, line):
             timeout=60,
         )
     except subprocess.TimeoutExpired:
-        print(f"Timeout for {idx}: {command_arg}")
+        print(f"Timeout for {slug}")
         timed_out = True
         result = None
 
@@ -27,22 +27,21 @@ def check_installability(idx, line):
         and result.returncode == 0
         and result.stdout.decode("utf-8").strip().lower().endswith("done")
     )
-    print(f"{idx}: {command_arg} -> {'✅' if success else '❌'}")
-    return (line, "✅" if success else "❌")
+    print(f"{slug}: {'✅' if success else '❌'}")
+    return (slug, success)
 
 
-def check_installability_all(package_urls: List[str]):
-    results = []
+def check_installability_many(package_slugs: List[str]):
+    results = {}
     with ThreadPoolExecutor() as executor:
         futures = {
-            executor.submit(check_installability, idx + 1, line): (idx, line)
-            for idx, line in enumerate(package_urls)
+            executor.submit(check_installability, slug): (idx, slug)
+            for idx, slug in enumerate(package_slugs)
         }
         for future in as_completed(futures):
-            results.append(future.result())
+            result = future.result()
+            results[result[0]] = result[1]
 
-    # Preserve original order
-    results.sort(key=lambda x: package_urls.index(x[0]))
     return results
 
 
@@ -51,12 +50,12 @@ def parse_input_file():
     with open(list_file, "r") as input_fil:
         lines = [line.strip() for line in input_fil if line.strip()]
 
-    results = check_installability_all(lines)
+    results = check_installability_many(lines)
 
     with open("output.txt", "w") as result_fil:
         result_fil.write("package_url,mip_installability\n")
-        for line, status in results:
-            result_fil.write(f"{line},{status}\n")
+        for line, status in results.items():
+            result_fil.write(f"{line},{'✅' if status else '❌'}\n")
 
     print(f"Processed {len(lines)} packages.")
 
